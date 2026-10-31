@@ -3,21 +3,49 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 )
 
 func main() {
-	if len(os.Args) < 2 || len(os.Args) > 3 {
+	args := os.Args[1:]
+
+	// Validate minimum argument length
+	if len(args) < 2 || len(args) > 4 {
+		printUsage()
 		return
 	}
 
-	rawInput := os.Args[1]
+	flag := args[0]
+	if !strings.HasPrefix(flag, "--color=") {
+		printUsage()
+		return
+	}
+
+	colorName := strings.TrimPrefix(flag, "--color=")
+	colorCode := GetColorCode(colorName)
+
+	var substring, rawInput, bannerName string
+	bannerName = "standard" // default banner
+
+	// Parse argument combinations intelligently
+	if len(args) == 2 {
+		rawInput = args[1]
+	} else if len(args) == 3 {
+		if isBannerName(args[2]) {
+			rawInput = args[1]
+			bannerName = args[2]
+		} else {
+			substring = args[1]
+			rawInput = args[2]
+		}
+	} else if len(args) == 4 {
+		substring = args[1]
+		rawInput = args[2]
+		bannerName = args[3]
+	}
+
 	if rawInput == "" {
 		return
-	}
-
-	bannerName := "standard"
-	if len(os.Args) == 3 {
-		bannerName = os.Args[2]
 	}
 
 	if err := ValidateInput(rawInput); err != nil {
@@ -36,6 +64,10 @@ func main() {
 		return
 	}
 
-	output := RenderLines(lines, banner)
+	output := RenderColoredLines(lines, banner, substring, colorCode)
 	fmt.Print(output)
+}
+
+func printUsage() {
+	fmt.Println("Usage: go run . [OPTION] [STRING]  EX: go run . --color=<color> <substring to be colored> \"something\"")
 }
